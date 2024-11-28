@@ -1,0 +1,39 @@
+package Units;
+
+import javax.swing.*;
+import ageOfStarcraft.Building;
+import java.awt.*;
+import java.awt.geom.AffineTransform;
+
+public class SCV extends AbstractUnit {
+    private ImageIcon imageIcon;
+
+    public SCV(int x, int y) {
+        super(x, y, 60, 10, 5); // 체력 60, 사거리 10, 공격력 5
+        this.imageIcon = new ImageIcon(getClass().getResource("/drawable/scv.png"));
+    }
+
+    @Override
+    public void draw(Graphics g, int backgroundX, Component observer) {
+        Graphics2D g2d = (Graphics2D) g;
+        AffineTransform originalTransform = g2d.getTransform(); // 현재 상태 저장
+
+        double scaleX = 0.3;
+        double scaleY = 0.3;
+
+        // 이동 및 스케일 적용
+        g2d.translate(x + backgroundX, y);
+        g2d.scale(scaleX, scaleY);
+        imageIcon.paintIcon(observer, g2d, 0, 0);
+
+        // 원래 상태로 복원
+        g2d.setTransform(originalTransform);
+
+        // 체력 바 그리기
+        g.setColor(Color.RED);
+        int barWidth = 30;
+        int barHeight = 5;
+        int filledWidth = (int) ((double) hp / 60 * barWidth);
+        g.fillRect(x + backgroundX, y - barHeight - 5, filledWidth, barHeight);
+    }
+}

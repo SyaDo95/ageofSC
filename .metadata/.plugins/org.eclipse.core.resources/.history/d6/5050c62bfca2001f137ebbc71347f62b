@@ -1,0 +1,48 @@
+package Units;
+
+import javax.swing.*;
+import ageOfStarcraft.Building;
+import java.awt.*;
+import java.awt.geom.AffineTransform;
+
+public class Marine extends AbstractUnit {
+    private ImageIcon moveIcon;
+    private ImageIcon attackIcon;
+
+    public Marine(int x, int y) {
+        super(x, y, 40, 60, 6); // 체력 40, 사거리 60, 공격력 6
+        this.moveIcon = new ImageIcon(getClass().getResource("/drawable/Marine-walking-unscreen.gif"));
+        this.attackIcon = new ImageIcon(getClass().getResource("/drawable/Marine-shooting.gif"));
+    }
+
+    @Override
+    public void draw(Graphics g, int backgroundX, Component observer) {
+        Graphics2D g2d = (Graphics2D) g;
+        AffineTransform originalTransform = g2d.getTransform(); // 현재 상태 저장
+
+        ImageIcon currentIcon = isAttacking ? attackIcon : moveIcon;
+        double scaleX = 0.3;
+        double scaleY = 0.3;
+
+        // 좌우 반전 및 스케일 적용
+        if (isAttacking) {
+            g2d.translate(x + backgroundX - (int) (currentIcon.getIconWidth() * scaleX), y);
+            g2d.scale(-scaleX, scaleY); // 좌우 반전
+        } else {
+            g2d.translate(x + backgroundX, y);
+            g2d.scale(scaleX, scaleY);
+        }
+
+        currentIcon.paintIcon(observer, g2d, 0, 0);
+
+        // 원래 상태로 복원
+        g2d.setTransform(originalTransform);
+
+        // 체력 바 그리기
+        g.setColor(Color.RED);
+        int barWidth = 30;
+        int barHeight = 5;
+        int filledWidth = (int) ((double) hp / 40 * barWidth);
+        g.fillRect(x + backgroundX, y - barHeight - 5, filledWidth, barHeight);
+    }
+}

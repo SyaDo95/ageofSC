@@ -1,0 +1,61 @@
+package Units;
+
+import javax.swing.*;
+import ageOfStarcraft.Building;
+import java.awt.*;
+import java.awt.geom.AffineTransform;
+
+public class Marine extends AbstractUnit {
+    private ImageIcon moveIcon;
+    private ImageIcon attackIcon;
+
+    public Marine(int x, int y) {
+        super(x, y, 40, 60, 6); // 체력 40, 사거리 60, 공격력 6
+        this.moveIcon = new ImageIcon(getClass().getResource("/drawable/Marine-walking-unscreen.gif"));
+        this.attackIcon = new ImageIcon(getClass().getResource("/drawable/Marine-shooting.gif"));
+    }
+
+    @Override
+    public void draw(Graphics g, int backgroundX, Component observer) {
+        Graphics2D g2d = (Graphics2D) g;
+        AffineTransform originalTransform = g2d.getTransform(); // 현재 상태 저장
+
+        // 현재 상태에 따라 사용하는 이미지 아이콘 선택
+        ImageIcon currentIcon = isAttacking ? attackIcon : moveIcon;
+
+        // 일반 이동과 공격 상태에 따른 스케일과 위치 조정
+        double scaleX, scaleY;
+        int translateX, translateY;
+
+        if (isAttacking) {
+            // 공격 상태일 때의 크기와 위치
+            scaleX = 0.35;  // 예: 공격 중일 때 더 큰 크기로 설정
+            scaleY = 0.35;
+            translateX = x + backgroundX - (int) (currentIcon.getIconWidth() * scaleX); // 원하는 좌표로 이동
+            translateY = y + 10;  // y 좌표도 필요에 따라 조정 가능
+        } else {
+            // 이동 상태일 때의 크기와 위치
+            scaleX = 0.3;
+            scaleY = 0.3;
+            translateX = x + backgroundX;
+            translateY = y;
+        }
+
+        // 위치와 스케일 적용
+        g2d.translate(translateX, translateY);
+        g2d.scale(scaleX, scaleY);
+
+        // 아이콘 그리기
+        currentIcon.paintIcon(observer, g2d, 0, 0);
+
+        // 원래 상태로 복원
+        g2d.setTransform(originalTransform);
+
+        // 체력 바 그리기
+        g.setColor(Color.RED);
+        int barWidth = 30;
+        int barHeight = 5;
+        int filledWidth = (int) ((double) hp / 40 * barWidth);
+        g.fillRect(x + backgroundX, y - barHeight - 5, filledWidth, barHeight);
+    }
+}

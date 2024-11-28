@@ -1,0 +1,45 @@
+package server;
+
+import java.io.*;
+import java.net.*;
+
+public class GameClient {
+    private static final String SERVER_ADDRESS = "localhost"; // 서버 주소
+    private static final int PORT = 12345;
+
+    public static void main(String[] args) {
+        try (Socket socket = new Socket(SERVER_ADDRESS, PORT);
+             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+             ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
+             BufferedReader userInput = new BufferedReader(new InputStreamReader(System.in))) {
+
+            System.out.println("서버에 연결되었습니다!");
+
+            // 게임 상태 수신 스레드
+            new Thread(() -> {
+                try {
+                    while (true) {
+                        GameState gameState = (GameState) in.readObject();
+                        System.out.println("게임 상태 업데이트: " +
+                                "왼쪽 성 체력 = " + gameState.getLeftFortressHp() +
+                                ", 오른쪽 성 체력 = " + gameState.getRightFortressHp());
+                    }
+                } catch (IOException | ClassNotFoundException e) {
+                    e.printStackTrace();
+                }
+            }).start();
+
+            while (true) {
+                System.out.print("명령 입력 (SPAWN/MOVE/ATTACK): ");
+                String command = userInput.readLine();
+
+                // 데이터 생성 및 전송
+                GameData dataToSend = new GameData(command, "Marine", 100, 200, 1500);
+                out.writeObject(dataToSend);
+                out.flush();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}

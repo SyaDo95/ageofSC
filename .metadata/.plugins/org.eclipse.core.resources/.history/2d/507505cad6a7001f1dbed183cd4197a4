@@ -1,0 +1,109 @@
+package server;
+
+import java.io.*;
+import java.net.*;
+import java.util.ArrayList;
+import java.util.List;
+
+public class GameServer {
+    private static final int PORT = 12345;
+    private static final List<ObjectOutputStream> clientOutputs = new ArrayList<>();
+    private static final GameState gameState = new GameState();
+
+    public static void main(String[] args) {
+        System.out.println("서버가 시작되었습니다...");
+
+        try (ServerSocket serverSocket = new ServerSocket(PORT)) {
+            while (true) {
+                System.out.println("클라이언트 대기 중...");
+                Socket clientSocket = serverSocket.accept();
+                System.out.println("클라이언트 연결됨: " + clientSocket.getInetAddress());
+
+                // 새로운 스레드에서 클라이언트와 통신 처리
+                ObjectOutputStream out = new ObjectOutputStream(clientSocket.getOutputStream());
+                clientOutputs.add(out);
+                new Thread(new ClientHandler(clientSocket, out)).start();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // 클라이언트와 통신 처리
+    private static class ClientHandler implements Runnable {
+        private Socket socket;
+        private ObjectOutputStream out;
+
+        public ClientHandler(Socket socket, ObjectOutputStream out) {
+            this.socket = socket;
+            this.out = out;
+        }
+
+        @Override
+        public void run() {
+            try (
+                ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
+            ) {
+                while (true) {
+                    // 클라이언트로부터 데이터 수신
+                    GameData receivedData = (GameData) in.readObject();
+                    System.out.println("클라이언트 명령: " + receivedData.getCommand());
+
+                    // 게임 상태 업데이트
+                    synchronized (gameState) {
+                        gameState.update(receivedData);
+                    }
+
+                    // 모든 클라이언트에 게임 상태 전송
+                    broadcastGameState();
+                }
+            } catch (IOException | ClassNotFoundException e) {
+                System.out.println("클라이언트 연결 끊김");
+            }
+        }
+
+        private void broadcastGameState() throws IOException {
+            synchronized (gameState) {
+                for (ObjectOutputStream clientOut : clientOutputs) {
+                    clientOut.writeObject(gameState);
+                    clientOut.flush();
+                }
+            }
+        }
+    }
+}
+
+// 게임 상태를 관리하는 클래스
+class GameState implements Serializable {
+    private static final long serialVersionUID = 1L;
+
+    private List<GameData> units = new ArrayList<>();
+    private int leftFortressHp = 1500;
+    private int rightFortressHp = 1500;
+
+    public void update(GameData data) {
+        switch (data.getCommand()) {
+            case "SPAWN":
+                units.add(data);
+                break;
+            case "ATTACK":
+                if (data.getUnitType().equals("Marine")) {
+                    rightFortressHp -= 10; // 임시 로직: 공격 시 체력 감소
+                }
+                break;
+            // 추가 명령에 따른 처리
+        }
+    }
+
+    public List<GameData> getUnits() {
+        return units;
+    }
+
+    public int getLeftFortressHp() {
+        return leftFortressHp;
+    }
+
+    public int getRightFortressHp() {
+        return rightFortressHp;
+    }
+}

@@ -3,35 +3,96 @@ package server;
 import java.io.*;
 import java.net.*;
 
+import ageOfStarcraft.GameWindow;
+
 public class GameClient {
-    public static void main(String[] args) {
-        try (Socket socket = new Socket("localhost", 12345);
-             DataInputStream in = new DataInputStream(socket.getInputStream());
-             DataOutputStream out = new DataOutputStream(socket.getOutputStream())) {
+    private GameWindow gameWindow;
+    private ObjectOutputStream out;
+    private ObjectInputStream in;
+    private String playerRole;
 
-            String playerRole = in.readUTF(); // 서버에서 역할 수신
-            System.out.println("플레이어 역할: " + playerRole);
+    public GameClient(String serverAddress, int serverPort) {
+        try {
+            Socket socket = new Socket(serverAddress, serverPort);
+            out = new ObjectOutputStream(socket.getOutputStream());
+            in = new ObjectInputStream(socket.getInputStream());
 
-            new Thread(() -> { // 서버에서 게임 상태 수신
+            // 서버에서 수신된 데이터 처리
+            new Thread(() -> {
                 try {
                     while (true) {
-                        String gameState = in.readUTF();
-                        System.out.println("게임 상태:\n" + gameState);
+                        GameAction action = (GameAction) in.readObject();
+                        handleServerAction(action);
                     }
-                } catch (IOException e) {
-                    System.out.println("서버 연결 끊김");
+                } catch (IOException | ClassNotFoundException e) {
+                    e.printStackTrace();
                 }
             }).start();
-
-            BufferedReader userInput = new BufferedReader(new InputStreamReader(System.in));
-            while (true) {
-                System.out.print("유닛 생성 명령(SPAWN): ");
-                String command = userInput.readLine();
-                out.writeUTF(command); // 서버로 명령 전송
-            }
-
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+
+    public void setGameWindow(GameWindow gameWindow) {
+        this.gameWindow = gameWindow;
+    }
+    
+    public int getSpawnX() {
+        if ("LEFT".equals(playerRole)) {
+            return 100; // 왼쪽 플레이어의 스폰 X좌표 (예: 왼쪽 건물 옆)
+        } else if ("RIGHT".equals(playerRole)) {
+            return 900; // 오른쪽 플레이어의 스폰 X좌표 (예: 오른쪽 건물 옆)
+        } else {
+            return 0; // 기본값
+        }
+    }
+
+    public void sendAction(GameAction action) {
+        try {
+            out.writeObject(action);
+            out.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    public void sendUnitUpdate(UnitState unitState) {
+        sendAction(new GameAction("UNIT_UPDATE", unitState, playerRole));
+    }
+
+    public void sendSpawnRequest(String unitType) {
+        System.out.println("Sending spawn request for: " + unitType);
+        int spawnX = playerRole.equals("LEFT") ? 100 : 900; // 좌표 설정
+        UnitState state = new UnitState(unitType, playerRole, spawnX, 370, 100);
+        sendAction(new GameAction("SPAWN_UNIT", state, playerRole));
+        System.out.println("Spawn request sent: " + state);
+    }
+
+
+    private void handleServerAction(GameAction action) {
+        if ("ASSIGN_ROLE".equals(action.getActionType())) {
+            playerRole = action.getPlayerId();
+            gameWindow.setPlayerRole(playerRole);
+            System.out.println("Received action from server: " + action);
+        } else if ("UNIT_UPDATE".equals(action.getActionType())) {
+            gameWindow.updateUnitState(action.getUnitState()); // 유닛 상태 업데이트
+        } else if ("SPAWN_UNIT".equals(action.getActionType())) {
+            gameWindow.spawnUnitFromServer(action.getUnitState()); // 유닛 추가
+        } else if ("BUILDING_UPDATE".equals(action.getActionType())) {
+            gameWindow.updateBuildingState(action.getUnitState());
+        }
+    }
+
+    
+    public String getPlayerRole() {
+        return playerRole;
+    }
+    public static void main(String[] args) {
+        GameClient client = new GameClient("localhost", 12345);
+        GameWindow window = new GameWindow(client); // GameWindow에 클라이언트 전달
+        client.setGameWindow(window); // GameClient에 GameWindow 설정
+        window.setVisible(true);
+    }
+
 }
+

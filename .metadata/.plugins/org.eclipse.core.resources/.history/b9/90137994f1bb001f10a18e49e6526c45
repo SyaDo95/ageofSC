@@ -1,0 +1,98 @@
+package server;
+
+import java.io.*;
+import java.net.*;
+
+import ageOfStarcraft.GameWindow;
+
+public class GameClient {
+    private GameWindow gameWindow;
+    private ObjectOutputStream out;
+    private ObjectInputStream in;
+    private String playerRole;
+
+    public GameClient(String serverAddress, int serverPort) {
+        try {
+            Socket socket = new Socket(serverAddress, serverPort);
+            out = new ObjectOutputStream(socket.getOutputStream());
+            in = new ObjectInputStream(socket.getInputStream());
+
+            // 서버에서 수신된 데이터 처리
+            new Thread(() -> {
+                try {
+                    while (true) {
+                        GameAction action = (GameAction) in.readObject();
+                        handleServerAction(action);
+                    }
+                } catch (IOException | ClassNotFoundException e) {
+                    e.printStackTrace();
+                }
+            }).start();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void setGameWindow(GameWindow gameWindow) {
+        this.gameWindow = gameWindow;
+    }
+    
+    public int getSpawnX() {
+        if ("LEFT".equals(playerRole)) {
+            return 100; // 왼쪽 플레이어의 스폰 X좌표 (예: 왼쪽 건물 옆)
+        } else if ("RIGHT".equals(playerRole)) {
+            return 900; // 오른쪽 플레이어의 스폰 X좌표 (예: 오른쪽 건물 옆)
+        } else {
+            return 0; // 기본값
+        }
+    }
+
+    public void sendAction(GameAction action) {
+        try {
+            out.writeObject(action);
+            out.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    public void sendUnitUpdate(UnitState unitState) {
+        sendAction(new GameAction("UNIT_UPDATE", unitState, playerRole));
+    }
+
+    public void sendSpawnRequest(String unitType) {
+        System.out.println("Sending spawn request for: " + unitType);
+        int spawnX = playerside.equals("LEFT") ? 100 : 900; // 좌표 설정
+        UnitState state = new UnitState(unitType, playerside, spawnX, 370, 100);
+        sendAction(new GameAction("SPAWN_UNIT", state, playerside));
+        System.out.println("Spawn request sent: " + state);
+    }
+
+
+    private void handleServerAction(GameAction action) {
+        if ("ASSIGN_ROLE".equals(action.getActionType())) {
+            playerRole = action.getPlayerId();
+            gameWindow.setPlayerRole(playerRole);
+            System.out.println("Received action from server: " + action);
+        } else if ("UNIT_UPDATE".equals(action.getActionType())) {
+            gameWindow.updateUnitState(action.getUnitState()); // 유닛 상태 업데이트
+        } else if ("SPAWN_UNIT".equals(action.getActionType())) {
+            gameWindow.spawnUnitFromServer(action.getUnitState()); // 유닛 추가
+        } else if ("BUILDING_UPDATE".equals(action.getActionType())) {
+            gameWindow.updateBuildingState(action.getUnitState());
+        }
+    }
+
+    
+    public String getPlayerRole() {
+        return playerRole;
+    }
+    public static void main(String[] args) {
+        GameClient client = new GameClient("localhost", 12345);
+        GameWindow window = new GameWindow(client); // GameWindow에 클라이언트 전달
+        client.setGameWindow(window); // GameClient에 GameWindow 설정
+        window.setVisible(true);
+    }
+
+}
+

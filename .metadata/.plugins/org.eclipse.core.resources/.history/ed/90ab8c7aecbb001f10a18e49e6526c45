@@ -1,0 +1,84 @@
+package server;
+
+import java.io.*;
+import java.net.*;
+
+import ageOfStarcraft.GameWindow;
+
+public class GameClient {
+    private GameWindow gameWindow;
+    private ObjectOutputStream out;
+    private ObjectInputStream in;
+    private String playerRole;
+
+    public GameClient(String serverAddress, int serverPort) {
+        try {
+            Socket socket = new Socket(serverAddress, serverPort);
+            out = new ObjectOutputStream(socket.getOutputStream());
+            in = new ObjectInputStream(socket.getInputStream());
+
+            // 서버에서 수신된 데이터 처리
+            new Thread(() -> {
+                try {
+                    while (true) {
+                        GameAction action = (GameAction) in.readObject();
+                        handleServerAction(action);
+                    }
+                } catch (IOException | ClassNotFoundException e) {
+                    e.printStackTrace();
+                }
+            }).start();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void setGameWindow(GameWindow gameWindow) {
+        this.gameWindow = gameWindow;
+    }
+
+    public void sendAction(GameAction action) {
+        try {
+            out.writeObject(action);
+            out.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    public void sendUnitUpdate(UnitState unitState) {
+        sendAction(new GameAction("UNIT_UPDATE", unitState, playerRole));
+    }
+
+    public void sendSpawnRequest(String unitType) {
+        UnitState state = new UnitState(unitType, playerRole, /* x좌표 */ getSpawnX(), 370, /* 체력 */ 100);
+        sendAction(new GameAction("SPAWN_UNIT", state, playerRole)); // 서버에 전송
+    }
+
+
+    private void handleServerAction(GameAction action) {
+        if ("ASSIGN_ROLE".equals(action.getActionType())) {
+            playerRole = action.getPlayerId();
+            gameWindow.setPlayerRole(playerRole);
+        } else if ("UNIT_UPDATE".equals(action.getActionType())) {
+            gameWindow.updateUnitState(action.getUnitState()); // 유닛 상태 업데이트
+        } else if ("BUILDING_UPDATE".equals(action.getActionType())) {
+            gameWindow.updateBuildingState(action.getUnitState()); // 건물 상태 업데이트
+        } else {
+            gameWindow.handleServerAction(action);
+        }
+    }
+
+    
+    public String getPlayerRole() {
+        return playerRole;
+    }
+    public static void main(String[] args) {
+        GameClient client = new GameClient("localhost", 12345);
+        GameWindow window = new GameWindow(client); // GameWindow에 클라이언트 전달
+        client.setGameWindow(window); // GameClient에 GameWindow 설정
+        window.setVisible(true);
+    }
+
+}
+

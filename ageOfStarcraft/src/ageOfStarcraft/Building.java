@@ -40,6 +40,9 @@ public class Building {
     public boolean isDestroyed() {
         return hp <= 0;
     }
+    public void setHp(int hp) {
+        this.hp = Math.max(0, hp); // 체력이 0 이하로 내려가지 않도록 보장
+    }
 
     public void draw(Graphics g, int backgroundX) {
         g.drawImage(image, x + backgroundX, y, null);

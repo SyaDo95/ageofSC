@@ -1,0 +1,223 @@
+package ageOfStarcraft;
+
+import javax.swing.*;
+
+import Units.*;
+
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionListener;
+import java.util.ArrayList;
+import java.util.List;
+
+public class GameWindow extends JFrame {
+    private Image background;
+    private Building leftFortress;
+    private Building rightFortress;
+    private List<Unit> units = new ArrayList<>(); // SCV 유닛들을 저장할 리스트
+
+    private int backgroundX = 0; // 배경의 X 위치
+    private final int slideSpeed = 10; // 배경이 움직이는 속도
+    private int mouseX = 0; // 현재 마우스의 X 좌표
+    private final String playerside; // LEFT 또는 RIGHT 플레이어 역할
+
+    public GameWindow(String playerside) {
+        this.playerside = playerside;
+       
+
+        // RIGHT 플레이어일 경우 배경의 시작 위치를 오른쪽 끝으로 설정
+        if (playerside.equals("RIGHT")) {
+            backgroundX = -(1536)+1024; // 배경 전체 너비에서 창 너비를 뺀 만큼 이동
+        }
+
+        // 창 설정
+        setTitle("2D Game Background with Fortresses");
+        setSize(1024, 512);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(null);
+
+        // JLayeredPane 설정
+        JLayeredPane layeredPane = new JLayeredPane();
+        layeredPane.setBounds(0, 0, getWidth(), getHeight());
+        add(layeredPane);
+
+        // 상단 패널 생성 및 위치 설정
+        TopPanel topPanel = new TopPanel(this); // 현재 GameWindow 인스턴스를 전달
+        topPanel.setBounds(700, 10, 300, 50);
+        layeredPane.add(topPanel, Integer.valueOf(2));
+
+        // 배경 이미지 로드 및 축소
+        background = new ImageIcon(getClass().getResource("/drawable/expanded_background_smooth_3072x1024.png"))
+                .getImage().getScaledInstance(1536, 512, Image.SCALE_SMOOTH);
+
+        // 건물 객체 생성 (위치와 크기 조정)
+        leftFortress = new Building("/drawable/left_fortress.png", 1500, 0, getHeight() - 390, 300, 400);
+        rightFortress = new Building("/drawable/right_fortress.png", 1500, 1536 - 300, getHeight() - 390, 300, 400);
+
+        // 메인 게임 패널 추가
+        GamePanel panel = new GamePanel();
+        panel.setBounds(0, 0, 1024, 512);
+        layeredPane.add(panel, Integer.valueOf(0));
+
+        // 마우스 움직임 감지 리스너 추가
+        panel.addMouseMotionListener(new MouseMotionListener() {
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                mouseX = e.getX();
+            }
+
+            @Override
+            public void mouseDragged(MouseEvent e) {
+            }
+        });
+
+        // 타이머 설정: 20ms마다 마우스 위치에 따라 배경 슬라이드 및 유닛 이동 업데이트
+        Timer timer = new Timer(20, new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (mouseX < 50 && backgroundX < 0) {
+                    backgroundX += slideSpeed;
+                } else if (mouseX > getWidth() - 50 && backgroundX > -(background.getWidth(null) - getWidth())) {
+                    backgroundX -= slideSpeed;
+                }
+
+                // 유닛 이동 및 충돌 검사 업데이트
+                updateUnits();
+
+                // 게임 종료 조건 확인
+                checkGameOver();
+
+                // 화면을 다시 그려 슬라이드 효과를 적용
+                panel.repaint();
+            }
+        });
+        timer.start();
+    }
+
+    public void spawnSCV() {
+        int spawnX = playerside.equals("LEFT")
+                ? leftFortress.getX() + leftFortress.getWidth()
+                : rightFortress.getX() - 30;
+        SCV scv = new SCV(spawnX, 370, playerside); // teamside 추가
+        units.add(scv);
+
+        if (playerside.equals("RIGHT")) {
+            scv.flipImage();
+        }
+    }
+
+    public void spawnMarine() {
+        int spawnX = playerside.equals("LEFT")
+                ? leftFortress.getX() + leftFortress.getWidth()
+                : rightFortress.getX() - 30;
+        Marine marine = new Marine(spawnX, 370, playerside); // teamside 추가
+        units.add(marine);
+    }
+
+    // 유닛 이동 및 충돌 검사 메서드
+    private void updateUnits() {
+        List<Unit> destroyedUnits = new ArrayList<>(); // 파괴된 유닛 저장 리스트
+
+        System.out.println("=== Update Units ===");
+        System.out.println("Total Units Before Update: " + units.size());
+
+        for (int i = 0; i < units.size(); i++) {
+            Unit unit = units.get(i);
+
+            if (unit.isDestroyed()) {
+                destroyedUnits.add(unit);
+                System.out.println("Destroyed Unit: " + unit + " at X=" + unit.getX());
+                continue; // 파괴된 유닛은 더 이상 처리하지 않음
+            }
+
+            boolean attacked = false;
+
+            // 다른 유닛들과의 공격 여부 검사 (팀 확인 추가)
+            for (Unit enemyUnit : units) {
+                if (enemyUnit != unit && !enemyUnit.isDestroyed() &&
+                    !unit.getTeamSide().equals(enemyUnit.getTeamSide()) && // 같은 팀인지 확인
+                    unit.isInRange(enemyUnit)) {
+
+                    System.out.println("Unit " + unit + " attacking " + enemyUnit);
+                    unit.attack(enemyUnit);
+                    attacked = true;
+                    break; // 공격하면 루프 종료
+                }
+            }
+
+            // 공격하지 않은 경우, 건물을 공격하거나 이동
+            if (!attacked) {
+                if (playerside.equals("LEFT")) {
+                    if (unit.isInRange(rightFortress, "LEFT")) {
+                        unit.attack(rightFortress);
+                        System.out.println("Unit " + unit + " attacking Right Fortress");
+                    } else {
+                        unit.stopAttacking();
+                        unit.move(3);
+                    }
+                } else { // RIGHT 플레이어
+                    if (unit.isInRange(leftFortress, "RIGHT")) {
+                        unit.attack(leftFortress);
+                        System.out.println("Unit " + unit + " attacking Left Fortress");
+                    } else {
+                        unit.stopAttacking();
+                        unit.move(-3);
+                    }
+                }
+            }
+        }
+
+        // 파괴된 유닛들을 루프가 끝난 뒤 제거
+        for (Unit destroyedUnit : destroyedUnits) {
+            units.remove(destroyedUnit);
+            System.out.println("Removing Destroyed Unit: " + destroyedUnit);
+        }
+
+        System.out.println("Total Units After Update: " + units.size());
+        System.out.println("=== End Update ===");
+    }
+
+
+    
+
+    private void checkGameOver() {
+        if (leftFortress.isDestroyed()) {
+            JOptionPane.showMessageDialog(this, "Right Player Wins!");
+            System.exit(0);
+        } else if (rightFortress.isDestroyed()) {
+            JOptionPane.showMessageDialog(this, "Left Player Wins!");
+            System.exit(0);
+        }
+    }
+
+    private class GamePanel extends JPanel {
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+
+            // 배경 이미지 그리기
+            g.drawImage(background, backgroundX, 0, null);
+
+            // 좌측 성 그리기
+            leftFortress.draw(g, backgroundX);
+
+            // 우측 성 그리기
+            rightFortress.draw(g, backgroundX);
+
+            for (Unit unit : units) {
+                unit.draw(g, backgroundX, this); // GamePanel의 this 전달
+            }
+        }
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            // LEFT 또는 RIGHT 를 테스트하기 위해 변경 가능
+            GameWindow window = new GameWindow("LEFT"); 
+            window.setVisible(true);
+        });
+    }
+}
+

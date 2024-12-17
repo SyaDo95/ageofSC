@@ -1,0 +1,58 @@
+package server;
+
+import java.io.*;
+import java.net.*;
+
+public class GameClient {
+    private GameWindow gameWindow;
+    private ObjectOutputStream out;
+    private ObjectInputStream in;
+    private String playerRole;
+
+    public GameClient(String serverAddress, int serverPort) {
+        try {
+            Socket socket = new Socket(serverAddress, serverPort);
+            out = new ObjectOutputStream(socket.getOutputStream());
+            in = new ObjectInputStream(socket.getInputStream());
+
+            // 서버에서 수신된 데이터 처리
+            new Thread(() -> {
+                try {
+                    while (true) {
+                        GameAction action = (GameAction) in.readObject();
+                        handleServerAction(action);
+                    }
+                } catch (IOException | ClassNotFoundException e) {
+                    e.printStackTrace();
+                }
+            }).start();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void setGameWindow(GameWindow gameWindow) {
+        this.gameWindow = gameWindow;
+    }
+
+    public void sendAction(GameAction action) {
+        try {
+            out.writeObject(action);
+            out.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void handleServerAction(GameAction action) {
+        System.out.println("Received from server: " + action);
+
+        if (action.getActionType().equals("ASSIGN_ROLE")) {
+            playerRole = (String) action.getUnitState();
+            gameWindow.setPlayerRole(playerRole);
+        } else {
+            gameWindow.handleServerAction(action);
+        }
+    }
+}
+

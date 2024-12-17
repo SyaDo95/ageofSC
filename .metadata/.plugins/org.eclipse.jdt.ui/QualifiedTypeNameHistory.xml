@@ -2,4 +2,11 @@
 <qualifiedTypeNameHistroy>
     <fullyQualifiedTypeName name="javax.swing.JFrame"/>
     <fullyQualifiedTypeName name="Units.SCV"/>
+    <fullyQualifiedTypeName name="java.io.DataOutputStream"/>
+    <fullyQualifiedTypeName name="ageOfStarcraft.GameWindow"/>
+    <fullyQualifiedTypeName name="server.UnitState"/>
+    <fullyQualifiedTypeName name="server.GameAction"/>
+    <fullyQualifiedTypeName name="server.GameClient"/>
+    <fullyQualifiedTypeName name="java.util.UUID"/>
+    <fullyQualifiedTypeName name="ageOfStarcraft.Building"/>
 </qualifiedTypeNameHistroy>

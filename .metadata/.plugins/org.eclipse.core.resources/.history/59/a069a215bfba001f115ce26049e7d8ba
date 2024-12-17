@@ -1,0 +1,71 @@
+package Units;
+
+import ageOfStarcraft.Building;
+import java.awt.*;
+
+public abstract class AbstractUnit implements Unit {
+    protected int x;
+    protected int y;
+    protected int hp;
+    protected int range;
+    protected int attackPower;
+    protected boolean isAttacking;
+
+    public AbstractUnit(int x, int y, int hp, int range, int attackPower) {
+        this.x = x;
+        this.y = y;
+        this.hp = hp;
+        this.range = range;
+        this.attackPower = attackPower;
+        this.isAttacking = false;
+    }
+
+    @Override
+    public int getX() { return x; }
+
+    @Override
+    public int getY() { return y; }
+
+    @Override
+    public int getRange() { return range; }
+
+    @Override
+    public void move(int dx) {
+        if (!isAttacking) x += dx;
+    }
+
+    @Override
+    public void attack(Building target) {
+        target.takeDamage(attackPower);
+        isAttacking = true;
+    }
+
+    @Override
+    public void stopAttacking() {
+        isAttacking = false;
+    }
+
+    @Override
+    public void takeDamage(int damage) {
+        hp -= damage;
+        if (hp < 0) hp = 0;
+    }
+
+    @Override
+    public boolean isDestroyed() { return hp <= 0; }
+
+    @Override
+    public boolean isInRange(Building enemyBuilding, String playerside) {
+        int distance;
+
+        if (playerside.equals("LEFT")) {
+            // LEFT 플레이어: 유닛의 x 좌표와 건물 왼쪽 끝 기준
+            distance = Math.abs(x - enemyBuilding.getX());
+        } else {
+            // RIGHT 플레이어: 유닛의 x 좌표와 건물 오른쪽 끝 기준
+            distance = Math.abs(x - (enemyBuilding.getX() + enemyBuilding.getWidth()));
+        }
+
+        return distance <= range; // 범위 내에 있으면 true
+    }
+}

@@ -1,28 +1,47 @@
+// --- 클라이언트 ---
 package server;
 
 import java.io.*;
 import java.net.*;
-
+import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
 import ageOfStarcraft.GameWindow;
 
 public class GameClient {
-    private GameWindow gameWindow;
+    private Socket socket;
     private ObjectOutputStream out;
     private ObjectInputStream in;
-    private String playerRole;
+    private GameWindow gameWindow;
+    private String playerSide; // 플레이어 역할 추가
 
-    public GameClient(String serverAddress, int serverPort) {
+    public GameClient(String host, int port, String playerSide) { // 역할을 생성자 매개변수로 추가
+        this.playerSide = playerSide; // 플레이어 역할 저장
         try {
-            Socket socket = new Socket(serverAddress, serverPort);
+            socket = new Socket(host, port);
             out = new ObjectOutputStream(socket.getOutputStream());
             in = new ObjectInputStream(socket.getInputStream());
+            
+            // 게임 창 생성 및 저장
+            SwingUtilities.invokeLater(() -> {
+                gameWindow = new GameWindow(playerSide, this); // playerSide 사용
+                gameWindow.setVisible(true);
+            });
 
-            // 서버에서 수신된 데이터 처리
+            // Start listening to server messages
             new Thread(() -> {
                 try {
-                    while (true) {
-                        GameAction action = (GameAction) in.readObject();
-                        handleServerAction(action);
+                    Object receivedObject;
+                    while ((receivedObject = in.readObject()) != null) {
+                        if (receivedObject instanceof GameAction) {
+                            GameAction action = (GameAction) receivedObject;
+
+                            // 유닛 소환 처리
+                            if (action.getActionType().equals("spawn_unit")) {
+                                SwingUtilities.invokeLater(() -> {
+                                    gameWindow.addUnit(action.getUnitType(), action.getTeam(), action.getX(), action.getY());
+                                });
+                            }
+                        }
                     }
                 } catch (IOException | ClassNotFoundException e) {
                     e.printStackTrace();
@@ -32,67 +51,45 @@ public class GameClient {
             e.printStackTrace();
         }
     }
-
+    
     public void setGameWindow(GameWindow gameWindow) {
         this.gameWindow = gameWindow;
-    }
-    
-    public int getSpawnX() {
-        if ("LEFT".equals(playerRole)) {
-            return 100; // 왼쪽 플레이어의 스폰 X좌표 (예: 왼쪽 건물 옆)
-        } else if ("RIGHT".equals(playerRole)) {
-            return 900; // 오른쪽 플레이어의 스폰 X좌표 (예: 오른쪽 건물 옆)
-        } else {
-            return 0; // 기본값
-        }
     }
 
     public void sendAction(GameAction action) {
         try {
             out.writeObject(action);
-            out.flush();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
-    
-    public void sendUnitUpdate(UnitState unitState) {
-        sendAction(new GameAction("UNIT_UPDATE", unitState, playerRole));
-    }
 
-    public void sendSpawnRequest(String unitType) {
-        System.out.println("Sending spawn request for: " + unitType);
-        int spawnX = playerRole.equals("LEFT") ? 100 : 900; // 좌표 설정
-        UnitState state = new UnitState(unitType, playerRole, spawnX, 370, 100);
-        sendAction(new GameAction("SPAWN_UNIT", state, playerRole));
-        System.out.println("Spawn request sent: " + state);
-    }
-
-
-    private void handleServerAction(GameAction action) {
-        if ("ASSIGN_ROLE".equals(action.getActionType())) {
-            playerRole = action.getPlayerId();
-            gameWindow.setPlayerRole(playerRole);
-            System.out.println("Received action from server: " + action);
-        } else if ("UNIT_UPDATE".equals(action.getActionType())) {
-            gameWindow.updateUnitState(action.getUnitState()); // 유닛 상태 업데이트
-        } else if ("SPAWN_UNIT".equals(action.getActionType())) {
-            gameWindow.spawnUnitFromServer(action.getUnitState()); // 유닛 추가
-        } else if ("BUILDING_UPDATE".equals(action.getActionType())) {
-            gameWindow.updateBuildingState(action.getUnitState());
-        }
-    }
-
-    
-    public String getPlayerRole() {
-        return playerRole;
-    }
     public static void main(String[] args) {
-        GameClient client = new GameClient("localhost", 12345);
-        GameWindow window = new GameWindow(client); // GameWindow에 클라이언트 전달
-        client.setGameWindow(window); // GameClient에 GameWindow 설정
-        window.setVisible(true);
+        // 플레이어 역할 선택
+        String[] options = {"LEFT", "RIGHT"};
+        String role = (String) JOptionPane.showInputDialog(
+            null,
+            "Choose your role:",
+            "Player Role Selection",
+            JOptionPane.QUESTION_MESSAGE,
+            null,
+            options,
+            options[0]
+        );
+
+        if (role == null) {
+            System.out.println("No role selected. Exiting...");
+            System.exit(0);
+        }
+
+        // 서버 주소 및 포트 설정
+        String serverHost = "localhost"; // 서버 호스트명 (또는 IP 주소)
+        int serverPort = 5000; // 서버 포트 번호
+
+        // 클라이언트 시작
+        GameClient client = new GameClient(serverHost, serverPort, role); // 역할 전달
+
+        // 역할 전송
+        client.sendAction(new GameAction("set_role", null, role, 0, 0));
     }
-
 }
-

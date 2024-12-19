@@ -7,6 +7,6 @@
     <fullyQualifiedTypeName name="server.UnitState"/>
     <fullyQualifiedTypeName name="server.GameAction"/>
     <fullyQualifiedTypeName name="server.GameClient"/>
-    <fullyQualifiedTypeName name="java.util.UUID"/>
     <fullyQualifiedTypeName name="ageOfStarcraft.Building"/>
+    <fullyQualifiedTypeName name="java.util.UUID"/>
 </qualifiedTypeNameHistroy>

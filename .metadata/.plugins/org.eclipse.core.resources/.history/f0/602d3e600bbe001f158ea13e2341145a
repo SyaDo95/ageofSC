@@ -1,0 +1,50 @@
+// --- 클라이언트 ---
+package server;
+
+import java.io.*;
+import java.net.*;
+
+public class GameClient {
+    private Socket socket;
+    private ObjectOutputStream out;
+    private ObjectInputStream in;
+
+    public GameClient(String host, int port) {
+        try {
+            socket = new Socket(host, port);
+            out = new ObjectOutputStream(socket.getOutputStream());
+            in = new ObjectInputStream(socket.getInputStream());
+
+            // Start listening to server messages
+            new Thread(() -> {
+                try {
+                    Object receivedObject;
+                    while ((receivedObject = in.readObject()) != null) {
+                        if (receivedObject instanceof GameAction) {
+                            GameAction action = (GameAction) receivedObject;
+                            System.out.println("Received action: " + action.getActionType());
+                            // Update game state based on received action
+                        }
+                    }
+                } catch (IOException | ClassNotFoundException e) {
+                    e.printStackTrace();
+                }
+            }).start();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void sendAction(GameAction action) {
+        try {
+            out.writeObject(action);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void main(String[] args) {
+        GameClient client = new GameClient("localhost", 5000);
+        client.sendAction(new GameAction("spawn_unit", "Marine", "LEFT", 100, 370));
+    }
+}

@@ -1,25 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <section name="Workbench">
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
-		<item key="selection" value="updateBuild"/>
+		<item key="selection" value="spawnUnit"/>
 		<item key="wrap" value="true"/>
 		<item key="casesensitive" value="false"/>
 		<item key="wholeword" value="false"/>
 		<item key="incremental" value="false"/>
 		<item key="isRegEx" value="false"/>
 		<list key="findhistory">
+			<item value="spawnUnit"/>
+			<item value="spawnnUnit"/>
+			<item value="draw"/>
+			<item value="spwanUnit"/>
+			<item value="sendSpawnRe"/>
+			<item value="spawnS"/>
+			<item value="spawn"/>
 			<item value="updateBuild"/>
 			<item value="sendSp"/>
 			<item value="Player"/>
-			<item value="spawnUnit"/>
 			<item value="GamePa"/>
 			<item value="handle"/>
 			<item value="setPlayer"/>
 			<item value="set"/>
 			<item value="Marine"/>
-			<item value="out"/>
-			<item value="flush"/>
-			<item value="입장"/>
 		</list>
 		<list key="replacehistory">
 		</list>

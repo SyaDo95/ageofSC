@@ -5,7 +5,6 @@ import javax.swing.*;
 import Units.*;
 import server.GameAction;
 import server.GameClient;
-import server.UnitState;
 
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -27,11 +26,12 @@ public class GameWindow extends JFrame {
     private final String playerside; // LEFT 또는 RIGHT 플레이어 역할
     private int playerResources = 200; // 초기 재화
     private JLabel resourceLabel; // 재화 표시를 위한 JLabel
-    private GameClient gameClient; // 게임 클라이언트 추가
+    private GameClient client; // 클라이언트 객체 추가
 
-    public GameWindow(GameClient gameClient) {
-    	  this.gameClient = gameClient; // 클라이언트 객체 초기화
-    	  this.playerside = gameClient.getPlayerRole(); // 플레이어 역할 설정
+
+    public GameWindow(String playerside, GameClient client) {
+    	this.playerside = playerside; // 역할 초기화
+        this.client = client; // 클라이언트 저장
        
 
         // RIGHT 플레이어일 경우 배경의 시작 위치를 오른쪽 끝으로 설정
@@ -122,8 +122,42 @@ public class GameWindow extends JFrame {
     private void updateResourceLabel() {
         resourceLabel.setText("Resources: " + playerResources); // 재화 라벨 업데이트
     }
-
+    
     public void spawnSCV() {
+        if (playerResources >= 50) {
+            playerResources -= 50;
+            updateResourceLabel();
+
+            // 서버로 SCV 소환 요청 전송
+            int spawnX = playerside.equals("LEFT")
+                    ? leftFortress.getX() + leftFortress.getWidth()
+                    : rightFortress.getX() - 30;
+
+            client.sendAction(new GameAction("spawn_unit", "SCV", playerside, spawnX, 370));
+        } else {
+            JOptionPane.showMessageDialog(this, "Not enough resources to spawn SCV!");
+        }
+    }
+
+    public void spawnMarine() {
+        if (playerResources >= 100) {
+            playerResources -= 100;
+            updateResourceLabel();
+
+            // 서버로 Marine 소환 요청 전송
+            int spawnX = playerside.equals("LEFT")
+                    ? leftFortress.getX() + leftFortress.getWidth()
+                    : rightFortress.getX() - 30;
+
+            client.sendAction(new GameAction("spawn_unit", "Marine", playerside, spawnX, 370));
+        } else {
+            JOptionPane.showMessageDialog(this, "Not enough resources to spawn Marine!");
+        }
+    }
+
+
+    /*
+    public void spawnSCV() {//로컬에서 소환
         // SCV 스폰 비용 확인
         if (playerResources >= 50) { // SCV 비용: 50
             playerResources -= 50; // 재화 차감
@@ -142,6 +176,9 @@ public class GameWindow extends JFrame {
             JOptionPane.showMessageDialog(this, "Not enough resources to spawn SCV!"); // 재화 부족 알림
         }
     }
+    
+    
+  
 
 
     public void spawnMarine() {
@@ -159,124 +196,16 @@ public class GameWindow extends JFrame {
             JOptionPane.showMessageDialog(this, "Not enough resources to spawn Marine!"); // 재화 부족 알림
         }
     }
-    
-    /*
-    public void spawnSCV() {
-        if (playerResources >= 50) {
-            playerResources -= 50;
-            updateResourceLabel();
+    */
+   
 
-            int spawnX = playerside.equals("LEFT")
-                    ? leftFortress.getX() + leftFortress.getWidth()
-                    : rightFortress.getX() - 30;
 
-            UnitState state = new UnitState("SCV", playerside, spawnX, 370, 60); // SCV 체력 60
-            gameClient.sendAction(new GameAction("SPAWN_UNIT", state, playerside));
-        } else {
-            JOptionPane.showMessageDialog(this, "Not enough resources to spawn SCV!");
-        }
-    }
-
-    public void spawnMarine() {
-        if (playerResources >= 100) {
-            playerResources -= 100;
-            updateResourceLabel();
-
-            int spawnX = playerside.equals("LEFT")
-                    ? leftFortress.getX() + leftFortress.getWidth()
-                    : rightFortress.getX() - 30;
-
-            UnitState state = new UnitState("Marine", playerside, spawnX, 370, 40); // Marine 체력 40
-            gameClient.sendAction(new GameAction("SPAWN_UNIT", state, playerside));
-        } else {
-            JOptionPane.showMessageDialog(this, "Not enough resources to spawn Marine!");
-        }
-    }
-
-*/
-
-    // 유닛 이동 및 충돌 검사 메서드
-    private void updateUnits() {
-    List<Unit> destroyedUnits = new ArrayList<>(); // 파괴된 유닛 저장 리스트
-
-    System.out.println("=== Update Units ===");
-    System.out.println("Total Units Before Update: " + units.size());
-
-    for (int i = 0; i < units.size(); i++) {
-        Unit unit = units.get(i);
-
-        if (unit.isDestroyed()) {
-            destroyedUnits.add(unit);
-
-            // 적 유닛 처치 시 보상 지급 로직
-            if (!unit.getTeamSide().equals(playerside)) { // 적 유닛인지 확인
-                int reward = unit.getCost() / 2; // 유닛 비용의 50% 보상
-                playerResources += reward; // 플레이어 재화 증가
-                updateResourceLabel(); // 재화 라벨 업데이트
-                System.out.println("Earned " + reward + " resources for destroying an enemy unit!");
-            }
-
-            System.out.println("Destroyed Unit: " + unit + " at X=" + unit.getX());
-            continue;
-        }
-
-        boolean attacked = false;
-
-        // 다른 유닛들과의 공격 여부 검사
-        for (Unit enemyUnit : units) {
-            if (enemyUnit != unit && !enemyUnit.isDestroyed() &&
-                !unit.getTeamSide().equals(enemyUnit.getTeamSide()) &&
-                unit.isInRange(enemyUnit)) {
-
-                System.out.println("Unit " + unit + " attacking " + enemyUnit);
-                unit.attack(enemyUnit);
-                attacked = true;
-                break;
-            }
-        }
-
-        // 공격하지 않은 경우, 건물을 공격하거나 이동
-        if (!attacked) {
-            if (playerside.equals("LEFT")) {
-                if (unit.isInRange(rightFortress, "LEFT")) {
-                    unit.attack(rightFortress);
-                } else {
-                    unit.stopAttacking();
-                    unit.move(3);
-                }
-            } else {
-                if (unit.isInRange(leftFortress, "RIGHT")) {
-                    unit.attack(leftFortress);
-                } else {
-                    unit.stopAttacking();
-                    unit.move(-3);
-                }
-            }
-        }
-
-        // 서버에 유닛 상태 전송
-        UnitState updatedState = new UnitState(
-            unit instanceof SCV ? "SCV" : "Marine",
-            unit.getTeamSide(),
-            unit.getX(),
-            unit.getY(),
-            unit.getHp()
-        );
-        gameClient.sendUnitUpdate(updatedState);
-    }
-
-    // 파괴된 유닛 제거
-    units.removeAll(destroyedUnits);
-
-    System.out.println("Total Units After Update: " + units.size());
-    System.out.println("=== End Update ===");
-}
 
    
 
     
 
-    /*private void updateUnits() {
+    private void updateUnits() {
         List<Unit> destroyedUnits = new ArrayList<>(); // 파괴된 유닛 저장 리스트
 
         System.out.println("=== Update Units ===");
@@ -345,8 +274,28 @@ public class GameWindow extends JFrame {
 
         System.out.println("Total Units After Update: " + units.size());
         System.out.println("=== End Update ===");
-    }*/
+    }
 
+    public void addUnit(String unitType, String team, int x, int y) {
+        Unit unit;
+
+        // 유닛 타입에 따라 SCV 또는 Marine 객체 생성
+        if (unitType.equals("SCV")) {
+            unit = new SCV(x, y, team);
+            if (team.equals("RIGHT")) {
+            	((SCV) unit).flipImage(); // SCV로 캐스팅하여 flipImage() 호출
+            }
+        } else if (unitType.equals("Marine")) {
+            unit = new Marine(x, y, team);
+            // Marine 유닛에 대해 flipImage()를 호출하지 않음
+        } else {
+            return; // 잘못된 유닛 타입일 경우 메서드 종료
+        }
+
+        // 생성된 유닛을 리스트에 추가
+        units.add(unit);
+        repaint(); // 화면 갱신
+    }
 
 
     
@@ -380,100 +329,42 @@ public class GameWindow extends JFrame {
 
             // 우측 성 그리기
             rightFortress.draw(g, backgroundX);
-
+            
+            // 유닛이 제대로 추가되었는지 로그 출력
+            System.out.println("현재 유닛 수: " + units.size());
             for (Unit unit : units) {
-                unit.draw(g, backgroundX, this); // GamePanel의 this 전달
+                System.out.println("유닛: ID=" + unit.getId() + ", X=" + unit.getX() + ", Y=" + unit.getY());
+                unit.draw(g, backgroundX, this);
             }
+            
         }
-       
-
-
-
-
-        
+               
 
     }
     
-    public void updateUnitState(UnitState unitState) {
-        boolean unitExists = false;
+    
 
-        // 기존 유닛 상태 업데이트
-        for (Unit unit : units) {
-            if (unit.getId().equals(unitState.getId())) {
-                unit.setX(unitState.getX());
-                unit.setY(unitState.getY());
-                unit.setHp(unitState.getHp());
-                unitExists = true;
-                break;
-            }
-        }
+   
 
-        // 새 유닛 추가 (동기화된 유닛이 없을 경우)
-        if (!unitExists) {
-            Unit newUnit;
-            if (unitState.getUnitType().equals("SCV")) {
-                newUnit = new SCV(unitState.getX(), unitState.getY(), unitState.getTeamSide());
-            } else {
-                newUnit = new Marine(unitState.getX(), unitState.getY(), unitState.getTeamSide());
-            }
-            units.add(newUnit);
-        }
 
-        repaint();
-    }
-    public void sendSpawnRequest(String unitType) {
-        int spawnX = playerside.equals("LEFT") ? leftFortress.getX() + leftFortress.getWidth()
-                : rightFortress.getX() - 30;
-
-        UnitState state = new UnitState(unitType, playerside, spawnX, 370, 100);
-        gameClient.sendAction(new GameAction("SPAWN_UNIT", state, playerside)); // 서버에 전송
-    }
 
 
     public void setPlayerRole(String role) {
         System.out.println("Player role set to: " + role);
     }
-    public void spawnUnitFromServer(UnitState unitState) {
-        Unit unit;
-        if (unitState.getUnitType().equals("SCV")) {
-            unit = new SCV(unitState.getX(), unitState.getY(), unitState.getTeamSide());
-        } else {
-            unit = new Marine(unitState.getX(), unitState.getY(), unitState.getTeamSide());
-        }
-        units.add(unit); // 유닛 리스트에 추가
-        repaint();
-    }
+   
 
 
-    public void handleServerAction(GameAction action) {
-        switch (action.getActionType()) {
-            case "SPAWN_UNIT":
-                spawnUnitFromServer(action.getUnitState());
-                break;
-            case "UNIT_UPDATE":
-                updateUnitState(action.getUnitState());
-                break;
-        }
-        
-    }
-    public void updateBuildingState(UnitState buildingState) {
-        if (buildingState.getUnitType().equals("LEFT_FORTRESS")) {
-            leftFortress.setHp(buildingState.getHp());
-        } else if (buildingState.getUnitType().equals("RIGHT_FORTRESS")) {
-            rightFortress.setHp(buildingState.getHp());
-        }
-        repaint();
-    }
+
+    
 
     
     
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            GameClient client = new GameClient("localhost", 12345); // 클라이언트 생성
-            GameWindow window = new GameWindow(client); // GameClient를 전달
-            client.setGameWindow(window); // GameWindow 설정
-            window.setVisible(true);
+            GameWindow gameWindow = new GameWindow("LEFT", null); // 기본적으로 SINGLE-PLAYER 모드
+            gameWindow.setVisible(true);
         });
     }
 }

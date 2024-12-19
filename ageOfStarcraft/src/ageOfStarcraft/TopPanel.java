@@ -40,7 +40,7 @@ public class TopPanel extends JPanel {
         unitButton1.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                gameWindow.spawnSCV(); // SCV 유닛 생성 메서드 호출
+            	gameWindow.spawnSCV();
             }
         });
         

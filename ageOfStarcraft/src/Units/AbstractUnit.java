@@ -24,7 +24,14 @@ public abstract class AbstractUnit implements Unit {
         this.teamSide = teamSide; // 생성 시 팀 정보 초기화
     }
     
-    public String getId() { return id; }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getId() {
+        return id;
+    }
     @Override
     public void setX(int x) { this.x = x; }
 
@@ -112,5 +119,7 @@ public abstract class AbstractUnit implements Unit {
     public String getTeamSide() {
         return teamSide; // 팀 사이드 반환
     }
+    
+
 
 }

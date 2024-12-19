@@ -1,0 +1,104 @@
+package server;
+
+import java.io.*;
+import java.net.*;
+import java.util.*;
+
+
+public class GameServer {
+    private static final int PORT = 12345;
+    private Player leftPlayer;
+    private Player rightPlayer;
+    private List<UnitState> allUnits = new ArrayList<>();
+    private int leftFortressHp = 1500;
+    private int rightFortressHp = 1500;
+
+    public static void main(String[] args) {
+        new GameServer().start();
+    }
+
+    public void start() {
+        System.out.println("Game server started...");
+        try (ServerSocket serverSocket = new ServerSocket(PORT)) {
+            while (true) {
+                Socket clientSocket = serverSocket.accept();
+                assignPlayer(clientSocket);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private synchronized void assignPlayer(Socket clientSocket) {
+        try {
+            ObjectOutputStream out = new ObjectOutputStream(clientSocket.getOutputStream());
+            ObjectInputStream in = new ObjectInputStream(clientSocket.getInputStream());
+
+            if (leftPlayer == null) {
+                leftPlayer = new Player(clientSocket, out, in, "LEFT");
+                out.writeObject(new GameAction("ASSIGN_ROLE", "LEFT"));
+                System.out.println("LEFT player connected.");
+            } else if (rightPlayer == null) {
+                rightPlayer = new Player(clientSocket, out, in, "RIGHT");
+                out.writeObject(new GameAction("ASSIGN_ROLE", "RIGHT"));
+                System.out.println("RIGHT player connected.");
+
+                // 두 플레이어가 연결되었으므로 게임 시작
+                startGame();
+            } else {
+                out.writeObject(new GameAction("ERROR", "Server is full."));
+                clientSocket.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void startGame() {
+        new Thread(leftPlayer).start();
+        new Thread(rightPlayer).start();
+
+        new Timer().scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                broadcastGameState();
+            }
+        }, 0, 100);
+    }
+
+    private synchronized void broadcastGameState() {
+        for (UnitState unitState : allUnits) {
+            broadcast(new GameAction("UNIT_UPDATE", unitState, "SERVER"), null);
+        }
+        broadcast(new GameAction("BUILDING_UPDATE",
+                new UnitState("LEFT_FORTRESS", "NONE", 0, 0, leftFortressHp), "SERVER"), null);
+        broadcast(new GameAction("BUILDING_UPDATE",
+                new UnitState("RIGHT_FORTRESS", "NONE", 0, 0, rightFortressHp), "SERVER"), null);
+    }
+    
+    private synchronized void handleSpawnRequest(GameAction action) {
+        UnitState unitState = action.getUnitState();
+        System.out.println("SPAWN_UNIT 요청 수신: " + unitState);
+
+        // 서버의 유닛 리스트에 추가
+        allUnits.add(unitState);
+
+        // 모든 클라이언트에 브로드캐스트
+        broadcast(new GameAction("SPAWN_UNIT", unitState, action.getPlayerId()), null);
+    }
+
+
+    private synchronized void broadcast(GameAction action, Player excludePlayer) {
+        try {
+            if (leftPlayer != excludePlayer) {
+                leftPlayer.sendAction(action);
+            }
+            if (rightPlayer != excludePlayer) {
+                rightPlayer.sendAction(action);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+

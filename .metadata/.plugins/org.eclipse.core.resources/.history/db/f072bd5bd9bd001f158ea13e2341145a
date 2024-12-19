@@ -1,0 +1,40 @@
+package server;
+
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.Socket;
+
+public class Player implements Runnable {
+    private Socket socket;
+    private ObjectOutputStream out;
+    private ObjectInputStream in;
+    private String role;
+
+    public Player(Socket socket, ObjectOutputStream out, ObjectInputStream in, String role) {
+        this.socket = socket;
+        this.out = out;
+        this.in = in;
+        this.role = role;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void sendAction(GameAction action) throws Exception {
+        out.writeObject(action);
+        out.flush();
+    }
+
+    public void run() {
+        try {
+            while (true) {
+                GameAction action = (GameAction) in.readObject();
+                System.out.println(role + " player sent: " + action);
+                // GameServer에서 이 부분을 동작하도록 추가 로직이 필요
+            }
+        } catch (Exception e) {
+            System.out.println(role + " player disconnected.");
+        }
+    }
+}

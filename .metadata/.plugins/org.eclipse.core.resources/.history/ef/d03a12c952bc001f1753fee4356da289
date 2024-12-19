@@ -1,0 +1,147 @@
+package server;
+
+import java.io.*;
+import java.net.*;
+import java.util.*;
+
+public class GameServer {
+    private static final int PORT = 12345;
+    private Player leftPlayer;
+    private Player rightPlayer;
+    private List<UnitState> allUnits = new ArrayList<>(); // 유닛 전체 상태 저장
+    private int leftFortressHp = 1500;  // 왼쪽 건물 체력
+    private int rightFortressHp = 1500; // 오른쪽 건물 체력
+
+    public static void main(String[] args) {
+        new GameServer().start();
+    }
+
+    public void start() {
+        System.out.println("Game server started...");
+        try (ServerSocket serverSocket = new ServerSocket(PORT)) {
+            while (true) {
+                Socket clientSocket = serverSocket.accept();
+                assignPlayer(clientSocket);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private synchronized void assignPlayer(Socket clientSocket) {
+        try {
+            ObjectOutputStream out = new ObjectOutputStream(clientSocket.getOutputStream());
+            ObjectInputStream in = new ObjectInputStream(clientSocket.getInputStream());
+
+            if (leftPlayer == null) {
+                leftPlayer = new Player(clientSocket, out, in, "LEFT");
+                out.writeObject(new GameAction("ASSIGN_ROLE", "LEFT"));
+                System.out.println("LEFT player connected.");
+            } else if (rightPlayer == null) {
+                rightPlayer = new Player(clientSocket, out, in, "RIGHT");
+                out.writeObject(new GameAction("ASSIGN_ROLE", "RIGHT"));
+                System.out.println("RIGHT player connected.");
+
+                // 두 플레이어가 연결되었으므로 게임 시작
+                startGame();
+            } else {
+                out.writeObject(new GameAction("ERROR", "Server is full.")); // 에러 메시지
+                clientSocket.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void startGame() {
+        new Thread(leftPlayer).start();
+        new Thread(rightPlayer).start();
+
+        new Timer().scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                broadcastGameState();
+            }
+        }, 0, 100); // 100ms마다 게임 상태 동기화
+    }
+
+    private synchronized void broadcastGameState() {
+        // 모든 유닛 상태 전송
+        for (UnitState unitState : allUnits) {
+            broadcast(new GameAction("UNIT_UPDATE", unitState, "SERVER"), null);
+        }
+
+        // 건물 상태 전송
+        broadcast(new GameAction("BUILDING_UPDATE",
+                new UnitState("LEFT_FORTRESS", "NONE", 0, 0, leftFortressHp), "SERVER"), null);
+
+        broadcast(new GameAction("BUILDING_UPDATE",
+                new UnitState("RIGHT_FORTRESS", "NONE", 0, 0, rightFortressHp), "SERVER"), null);
+    }
+
+    private synchronized void broadcast(GameAction action, Player excludePlayer) {
+        try {
+            if (leftPlayer != excludePlayer) leftPlayer.sendAction(action);
+            if (rightPlayer != excludePlayer) rightPlayer.sendAction(action);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private synchronized void syncUnitState(UnitState unitState, Player sender) {
+        allUnits.add(unitState); // 서버의 유닛 리스트에 추가
+        GameAction action = new GameAction("UNIT_UPDATE", unitState, sender.role);
+        broadcast(action, sender);
+    }
+
+    private synchronized void updateBuildingState(UnitState state) {
+        // 클라이언트에서 보낸 건물 체력 업데이트
+        if (state.getUnitType().equals("LEFT_FORTRESS")) {
+            leftFortressHp = state.getHp();
+        } else if (state.getUnitType().equals("RIGHT_FORTRESS")) {
+            rightFortressHp = state.getHp();
+        }
+        broadcast(new GameAction("BUILDING_UPDATE", state, "SERVER"), null);
+    }
+
+    class Player implements Runnable {
+        private Socket socket;
+        private ObjectOutputStream out;
+        private ObjectInputStream in;
+        private String role;
+
+        public Player(Socket socket, ObjectOutputStream out, ObjectInputStream in, String role) {
+            this.socket = socket;
+            this.out = out;
+            this.in = in;
+            this.role = role;
+        }
+
+        public void sendAction(GameAction action) throws IOException {
+            out.writeObject(action);
+            out.flush();
+        }
+
+        @Override
+        public void run() {
+            try {
+                while (true) {
+                    GameAction action = (GameAction) in.readObject();
+                    System.out.println(role + " player sent: " + action);
+
+                    if (action.getActionType().equals("SPAWN_UNIT")) {
+                        syncUnitState(action.getUnitState(), this);
+                    } else if (action.getActionType().equals("UNIT_UPDATE")) {
+                        syncUnitState(action.getUnitState(), this);
+                    } else if (action.getActionType().equals("BUILDING_UPDATE")) {
+                        updateBuildingState(action.getUnitState());
+                    }
+                }
+            } catch (IOException | ClassNotFoundException e) {
+                System.out.println(role + " player disconnected.");
+                if (role.equals("LEFT")) leftPlayer = null;
+                if (role.equals("RIGHT")) rightPlayer = null;
+            }
+        }
+    }
+}

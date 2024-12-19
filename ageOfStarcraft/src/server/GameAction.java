@@ -1,35 +1,43 @@
 package server;
 
+//--- 직렬화 객체 ---
+
 import java.io.Serializable;
 
 public class GameAction implements Serializable {
-    private String actionType; // SPAWN, MOVE, ATTACK 등
-    private UnitState unitState; // 관련된 유닛 상태
-    private String playerId;    // 명령을 보낸 플레이어
+ private static final long serialVersionUID = 1L;
 
-    public GameAction(String actionType, String playerId) {
-        this.actionType = actionType;
-        this.playerId = playerId;
-        this.unitState = null; // unitState는 null로 설정
-    }
-    
-    // 새로 추가된 생성자
-    public GameAction(String actionType, UnitState unitState, String playerId) {
-        this.actionType = actionType;
-        this.unitState = unitState;
-        this.playerId = playerId;
-    }
+ private String actionType; // e.g., "spawn_unit", "update_unit"
+ private String unitType;  // e.g., "SCV", "Marine"
+ private String team;      // e.g., "LEFT", "RIGHT"
+ private int x;
+ private int y;
 
-    public String getActionType() { return actionType; }
-    public UnitState getUnitState() { return unitState; }
-    public String getPlayerId() { return playerId; }
+ public GameAction(String actionType, String unitType, String team, int x, int y) {
+     this.actionType = actionType;
+     this.unitType = unitType;
+     this.team = team;
+     this.x = x;
+     this.y = y;
+ }
 
-    @Override
-    public String toString() {
-        return "GameAction{" +
-                "actionType='" + actionType + '\'' +
-                ", unitState=" + unitState +
-                ", playerId='" + playerId + '\'' +
-                '}';
-    }
+ public String getActionType() {
+     return actionType;
+ }
+
+ public String getUnitType() {
+     return unitType;
+ }
+
+ public String getTeam() {
+     return team;
+ }
+
+ public int getX() {
+     return x;
+ }
+
+ public int getY() {
+     return y;
+ }
 }

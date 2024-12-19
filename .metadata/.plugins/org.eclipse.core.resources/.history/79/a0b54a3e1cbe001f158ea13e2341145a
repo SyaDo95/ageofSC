@@ -52,11 +52,6 @@ public abstract class AbstractUnit implements Unit {
     
     @Override
     public int getHp() {return hp; }
-    
-    @Override
-    public int getImageWidth() {
-        return imageWidth;
-    }
 
     @Override
     public void move(int dx) {
@@ -72,10 +67,10 @@ public abstract class AbstractUnit implements Unit {
     @Override
     public void attack(Unit target) {
         if (!target.isDestroyed()) {
-            target.takeDamage(attackPower); // 적 유닛 HP 감소
-            isAttacking = true; // 공격 상태로 변경
+            target.takeDamage(attackPower); // HP 감소
+            isAttacking = true;
 
-            // 적 유닛이 파괴되었는지 확인
+            // 타겟 유닛이 파괴되었는지 확인
             if (target.isDestroyed()) {
                 System.out.println("Unit " + target.getId() + " destroyed!");
             }
@@ -135,13 +130,6 @@ public abstract class AbstractUnit implements Unit {
         // 두 유닛 간 거리 계산
         int distance = Math.abs(thisCenterX - enemyCenterX);
         return distance <= range; // 사정거리 내인지 확인
-    }
-    public boolean isAttacking() {
-        return isAttacking;
-    }
-
-    public void setAttacking(boolean isAttacking) {
-        this.isAttacking = isAttacking;
     }
     @Override
     public String getTeamSide() {

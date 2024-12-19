@@ -136,13 +136,6 @@ public abstract class AbstractUnit implements Unit {
         int distance = Math.abs(thisCenterX - enemyCenterX);
         return distance <= range; // 사정거리 내인지 확인
     }
-    public boolean isAttacking() {
-        return isAttacking;
-    }
-
-    public void setAttacking(boolean isAttacking) {
-        this.isAttacking = isAttacking;
-    }
     @Override
     public String getTeamSide() {
         return teamSide; // 팀 사이드 반환

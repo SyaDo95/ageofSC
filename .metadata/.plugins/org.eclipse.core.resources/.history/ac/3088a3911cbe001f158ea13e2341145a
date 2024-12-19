@@ -8,7 +8,6 @@ public interface Unit {
     int getY();
     int getRange();
     int getHp();
-    int getImageWidth(); // 유닛의 이미지 너비 반환
     void setX(int x);
     void setY(int y);
     void setHp(int hp);

@@ -52,11 +52,6 @@ public abstract class AbstractUnit implements Unit {
     
     @Override
     public int getHp() {return hp; }
-    
-    @Override
-    public int getImageWidth() {
-        return imageWidth;
-    }
 
     @Override
     public void move(int dx) {
@@ -135,13 +130,6 @@ public abstract class AbstractUnit implements Unit {
         // 두 유닛 간 거리 계산
         int distance = Math.abs(thisCenterX - enemyCenterX);
         return distance <= range; // 사정거리 내인지 확인
-    }
-    public boolean isAttacking() {
-        return isAttacking;
-    }
-
-    public void setAttacking(boolean isAttacking) {
-        this.isAttacking = isAttacking;
     }
     @Override
     public String getTeamSide() {

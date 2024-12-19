@@ -224,7 +224,7 @@ public class GameWindow extends JFrame {
 
                         if (unit instanceof Marine) {
                             // 마린은 공격 상태로 전환
-                        	 ((Marine) unit).setAttacking(true);
+                            ((Marine) unit).isAttacking = true;
                         }
 
                         if (enemyUnit.isDestroyed()) {
@@ -254,7 +254,7 @@ public class GameWindow extends JFrame {
                     unit.attack(leftFortress);
                     attacked = true;
                     if (unit instanceof Marine) {
-                    	 ((Marine) unit).setAttacking(true);
+                        ((Marine) unit).isAttacking = true;
                     }
                 }
             }

@@ -217,51 +217,41 @@ public class GameWindow extends JFrame {
 
             // **1. 적 유닛 탐지 및 공격**
             for (Unit enemyUnit : units) {
-                if (!enemyUnit.isDestroyed() && !unit.getTeamSide().equals(enemyUnit.getTeamSide())) {
-                    if (unit.isInRange(enemyUnit)) {
-                        unit.attack(enemyUnit);
+                if (!enemyUnit.isDestroyed() && !unit.getTeamSide().equals(enemyUnit.getTeamSide())) { // 적인지 확인
+                    if (unit.isInRange(enemyUnit)) { // 사거리 내에 있으면 공격
+                        unit.attack(enemyUnit); // 공격 실행
                         attacked = true;
 
-                        if (unit instanceof Marine) {
-                            // 마린은 공격 상태로 전환
-                        	 ((Marine) unit).setAttacking(true);
-                        }
-
+                        // 적 유닛이 파괴되었는지 확인
                         if (enemyUnit.isDestroyed()) {
                             destroyedUnits.add(enemyUnit);
 
-                            // 보상 지급
+                            // 보상 지급 로직
                             if (playerside.equals(unit.getTeamSide())) {
-                                int reward = enemyUnit.getCost() / 2;
+                                int reward = enemyUnit.getCost() / 2; // 보상 지급
                                 playerResources += reward;
                                 updateResourceLabel();
                             }
                         }
-                        break; // 적 공격 완료 후 루프 종료
+                        break; // 공격 성공 시 루프 종료
                     }
                 }
             }
 
             // **2. 적 건물 탐지 및 공격**
-            if (!attacked) {
+            if (!attacked) { // 유닛을 공격하지 않았다면 건물 확인
                 if (unit.getTeamSide().equals("LEFT") && unit.isInRange(rightFortress, "LEFT")) {
                     unit.attack(rightFortress);
                     attacked = true;
-                    if (unit instanceof Marine) {
-                    	 ((Marine) unit).setAttacking(true);
-                    }
                 } else if (unit.getTeamSide().equals("RIGHT") && unit.isInRange(leftFortress, "RIGHT")) {
                     unit.attack(leftFortress);
                     attacked = true;
-                    if (unit instanceof Marine) {
-                    	 ((Marine) unit).setAttacking(true);
-                    }
                 }
             }
 
             // **3. 이동 로직**
-            if (!attacked) {
-                unit.stopAttacking(); // 공격 중이 아니므로 이동 상태로 복귀
+            if (!attacked) { // 공격하지 않았다면 이동
+                unit.stopAttacking();
                 unit.move(playerside.equals("LEFT") ? 3 : -3);
             }
         }

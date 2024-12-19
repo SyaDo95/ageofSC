@@ -42,11 +42,11 @@ public class Marine extends AbstractUnit {
         int translateX, translateY;
 
         if (isAttacking) {
-            // 공격 상태일 때의 크기와 위치
-            scaleX = 0.3;
-            scaleY = 0.3;
+            // 공격 상태일 때의 크기와 위치 (작게 설정하고 좌우 반전)
+            scaleX = 0.3;  // 음수로 설정하여 좌우 반전
+            scaleY = 0.3;   // 작게 출력되도록 스케일 축소
             translateX = x + backgroundX + (int) (currentIcon.getIconWidth() * 0.35) - 30;
-            translateY = y + 10;
+            translateY = y + 10;  // y 좌표도 필요에 따라 조정 가능
         } else {
             // 이동 상태일 때의 크기와 위치
             scaleX = 0.3;
@@ -72,7 +72,6 @@ public class Marine extends AbstractUnit {
         int filledWidth = (int) ((double) hp / 40 * barWidth);
         g.fillRect(x + backgroundX, y - barHeight - 5, filledWidth, barHeight);
     }
-
     
     @Override
     public boolean isInRange(Building enemyBuilding, String playerside) {

@@ -70,7 +70,7 @@ public abstract class AbstractUnit implements Unit {
             target.takeDamage(attackPower); // HP 감소
             isAttacking = true;
 
-            // 타겟 유닛이 파괴되었는지 확인
+            // 유닛이 파괴되었는지 확인
             if (target.isDestroyed()) {
                 System.out.println("Unit " + target.getId() + " destroyed!");
             }
@@ -91,10 +91,7 @@ public abstract class AbstractUnit implements Unit {
     @Override
     public void takeDamage(int damage) {
         hp -= damage;
-        if (hp <= 0) {
-            hp = 0; // 체력을 0으로 설정
-            System.out.println("Unit " + id + " is destroyed!");
-        }
+        if (hp < 0) hp = 0; // 체력이 0 이하로 내려가지 않도록 보장
     }
 
     @Override

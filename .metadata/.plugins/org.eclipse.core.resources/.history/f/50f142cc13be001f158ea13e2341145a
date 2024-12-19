@@ -9,8 +9,8 @@ import java.awt.geom.AffineTransform;
 public class SCV extends AbstractUnit {
     private ImageIcon imageIcon;
 
-    public SCV(int x, int y,  String teamSide) {
-    	super(x, y, 60, 10, 1, teamSide); // 체력 60, 사거리 5, 공격력 5
+    public SCV(int x, int y,  String playerside) {
+    	super(x, y, 60, 1, 5, playerside); // 체력 60, 사거리 1, 공격력 5
         this.imageIcon = new ImageIcon(getClass().getResource("/drawable/scv.png"));
         this.imageWidth = imageIcon.getIconWidth();
     }

@@ -4,8 +4,6 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
-import Units.Unit;
-
 public class GameServer {
     private static final int PORT = 5000;
     private List<ClientHandler> clients = new ArrayList<>();
@@ -36,12 +34,6 @@ public class GameServer {
             client.sendAction(action);
         }
     }
-    
-    public synchronized void broadcastDeath(Unit unit) {
-        GameAction deathAction = new GameAction("remove_unit", null, unit.getTeamSide(), unit.getX(), unit.getY());
-        broadcast(deathAction);
-    }
-
 
     public synchronized void removeClient(ClientHandler client) {
         clients.remove(client);

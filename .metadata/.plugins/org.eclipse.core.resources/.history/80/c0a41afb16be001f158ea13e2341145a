@@ -5,8 +5,6 @@ import java.io.*;
 import java.net.*;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
-
-import Units.Unit;
 import ageOfStarcraft.GameWindow;
 
 public class GameClient {
@@ -41,20 +39,6 @@ public class GameClient {
                             if (action.getActionType().equals("spawn_unit")) {
                                 SwingUtilities.invokeLater(() -> {
                                     gameWindow.addUnit(action.getUnitType(), action.getTeam(), action.getX(), action.getY());
-                                });
-                            }if (action.getActionType().equals("remove_unit")) {
-                                SwingUtilities.invokeLater(() -> {
-                                    Unit unitToRemove = null;
-                                    for (Unit unit : gameWindow.getUnits()) { // 모든 유닛 검색
-                                        if (unit.getX() == action.getX() && unit.getY() == action.getY()) {
-                                            unitToRemove = unit;
-                                            break;
-                                        }
-                                    }
-                                    if (unitToRemove != null) {
-                                        gameWindow.getUnits().remove(unitToRemove); // 유닛 삭제
-                                        gameWindow.repaint(); // 화면 갱신
-                                    }
                                 });
                             }
                         }

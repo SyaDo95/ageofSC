@@ -11,7 +11,7 @@ public class Marine extends AbstractUnit {
     private ImageIcon attackIcon;
 
     public Marine(int x, int y, String playerside) {
-    	super(x, y, 40, 50, 3, playerside); // 체력 40, 사거리 50, 공격력 6
+    	super(x, y, 40, 50, 6, playerside); // 체력 40, 사거리 50, 공격력 6
 
         if (playerside.equals("LEFT")) {
             this.moveIcon = new ImageIcon(getClass().getResource("/drawable/Marine-walking-unscreen.gif"));

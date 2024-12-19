@@ -10,7 +10,7 @@ public class SCV extends AbstractUnit {
     private ImageIcon imageIcon;
 
     public SCV(int x, int y,  String teamSide) {
-    	super(x, y, 60, 10, 1, teamSide); // 체력 60, 사거리 5, 공격력 5
+    	super(x, y, 600, 2, 5, teamSide); // 체력 60, 사거리 2, 공격력 5
         this.imageIcon = new ImageIcon(getClass().getResource("/drawable/scv.png"));
         this.imageWidth = imageIcon.getIconWidth();
     }
